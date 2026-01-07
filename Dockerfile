@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Instalar todas as dependências (incluindo devDependencies para build)
-RUN npm ci
+RUN npm install
 
 # Copiar código fonte
 COPY . .
@@ -28,7 +28,7 @@ RUN addgroup -g 1001 -S nodejs && \
 COPY package.json package-lock.json ./
 
 # Instalar apenas dependências de produção
-RUN npm ci --only=production && \
+RUN npm install --omit=dev && \
     npm cache clean --force
 
 # Copiar arquivos buildados do stage anterior
