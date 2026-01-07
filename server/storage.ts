@@ -1071,15 +1071,6 @@ export class DatabaseStorage implements IStorage {
     return updatedOrder || undefined;
   }
 
-  async approveProduct(id: number): Promise<Product | undefined> {
-    const [product] = await db
-      .update(products)
-      .set({ isApproved: true })
-      .where(eq(products.id, id))
-      .returning();
-    return product || undefined;
-  }
-
   async rejectProduct(id: number): Promise<Product | undefined> {
     const [product] = await db
       .update(products)
