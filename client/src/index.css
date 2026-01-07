@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light Mode */
+  --background: 270 25% 92%;
+  --foreground: 265 14% 12%;
+  --muted: 270 20% 92%;
+  --muted-foreground: 265 10% 40%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 265 14% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 265 14% 12%;
+  --border: 278 20% 85%;
+  --input: 278 20% 90%;
+  /* COR ATUALIZADA */
+  --primary: 302 100% 30%; /* Equivalente a #990095 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 270 20% 94%;
+  /* COR ATUALIZADA */
+  --secondary-foreground: 302 100% 30%; /* Mantendo consistência */
+  --accent: 266 75% 75%;
+  --accent-foreground: 265 14% 12%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  /* COR ATUALIZADA */
+  --ring: 302 100% 40%; /* Versão mais clara para o anel de foco */
+  --radius: 0.75rem;
+}
+
+.dark {
+  /* Dark Mode */
+  --background: 265 14% 8%;
+  --foreground: 270 22% 85%;
+  --muted: 265 10% 15%;
+  --muted-foreground: 270 15% 60%;
+  --popover: 265 14% 10%;
+  --popover-foreground: 270 22% 85%;
+  --card: 265 12% 12%;
+  --card-foreground: 270 22% 85%;
+  --border: 278 10% 25%;
+  --input: 278 10% 18%;
+  /* COR ATUALIZADA */
+  --primary: 302 100% 60%; /* Versão mais clara para o modo escuro */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 265 10% 20%;
+  --secondary-foreground: 270 22% 85%;
+  --accent: 266 60% 65%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 0 0% 100%;
+  /* COR ATUALIZADA */
+  --ring: 302 100% 60%; /* Mantendo consistência com o primary do dark mode */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .acai-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  }
+  .acai-button {
+    @apply acai-gradient text-primary-foreground;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px hsla(var(--primary) / 0.2);
+  }
+  .acai-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px hsla(var(--primary) / 0.3);
+    filter: brightness(1.15);
+  }
+
+  /* Animações da barra de pesquisa */
+  .search-container {
+    position: relative;
+  }
+
+  .search-input {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .search-input:focus {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px hsla(var(--primary) / 0.15);
+  }
+
+  .search-container:focus-within .search-icon {
+    color: hsl(var(--primary));
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+
+  .search-icon {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+
+  .search-pulse {
+    width: 8px;
+    height: 8px;
+    background: hsl(var(--primary));
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: translate(-50%, -50%) scale(1.2);
+    }
+  }
+
+  /* Animação de busca ativa */
+  .search-input:not(:placeholder-shown) {
+    border-color: hsl(var(--primary) / 0.5);
+  }
+
+  /* Animação quando foca na barra de pesquisa */
+  .search-container:focus-within .search-icon {
+    color: hsl(var(--primary));
+    animation: searchPulse 1.5s ease-in-out infinite;
+  }
+
+  /* Quando há texto digitado, manter cor primária no ícone */
+  .search-container.has-text .search-icon {
+    color: hsl(var(--primary));
+  }
+
+  /* Quando há texto digitado, destacar borda */
+  .search-container.has-text .search-input {
+    border-color: hsl(var(--primary) / 0.3);
+  }
+
+  @keyframes searchPulse {
+    0%, 100% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.15);
+      opacity: 0.8;
+    }
+  }
+}

@@ -1,0 +1,107 @@
+<mjml>
+  <mj-head>
+    <mj-attributes>
+      <mj-all font-family="Inter, Arial, sans-serif" />
+      <mj-text font-size="14px" color="#222222" line-height="1.6" />
+      <mj-button
+        background-color="#990095"
+        color="#ffffff"
+        border-radius="8px"
+        font-size="14px"
+        font-weight="600"
+        padding="14px 24px"
+      />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f6f7fb">
+
+    <!-- Header -->
+    <mj-section background-color="#990095" padding="32px 0">
+      <mj-column>
+        <mj-image
+          align="center"
+          width="72px"
+          src="{{logoUrl}}"
+          alt="Casa D'Amazonia"
+          padding="0 0 12px 0"
+        />
+        <mj-text
+          align="center"
+          color="#ffffff"
+          font-size="22px"
+          font-weight="700"
+          padding-bottom="4px"
+        >
+          Pedido recebido
+        </mj-text>
+        <mj-text
+          align="center"
+          color="#f3d9f4"
+          font-size="14px"
+        >
+          Aguardando pagamento
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Card -->
+    <mj-section padding="24px">
+      <mj-column
+        background-color="#ffffff"
+        border-radius="12px"
+        padding="24px"
+      >
+        <mj-text font-size="16px" font-weight="600">
+          Olá, {{customerName}} 👋
+        </mj-text>
+
+        <mj-text>
+          Recebemos seu pedido <strong>#{{orderId}}</strong>.
+          No momento, ele está <strong>pendente de pagamento</strong>.
+        </mj-text>
+
+        <mj-spacer height="16px" />
+
+        <!-- Order table -->
+        <mj-table font-size="14px" cellpadding="6" cellspacing="0" width="100%">
+          <tr style="border-bottom:1px solid #e5e7eb;">
+            <th align="left">Item</th>
+            <th align="right">Preço</th>
+          </tr>
+
+          {{items_rows}}
+
+          <tr style="border-top:1px solid #e5e7eb;">
+            <td align="right"><strong>Total</strong></td>
+            <td align="right"><strong>R$ {{total}}</strong></td>
+          </tr>
+        </mj-table>
+
+        <mj-spacer height="24px" />
+
+        <!-- CTA -->
+        <mj-button href="{{paymentUrl}}">
+          Pagar pedido agora
+        </mj-button>
+
+        <mj-spacer height="16px" />
+
+        <mj-text font-size="12px" color="#6b7280">
+          Assim que o pagamento for confirmado, você receberá um novo e-mail com a confirmação do pedido.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section padding="16px">
+      <mj-column>
+        <mj-text align="center" font-size="12px" color="#9ca3af">
+          © {{year}} Casa D'Amazonia · Todos os direitos reservados<br />
+          Este é um e-mail automático. Não responda.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>
