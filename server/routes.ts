@@ -20,6 +20,21 @@ import { processPayment, handleWebhook } from "./services/payment";
 import { getCartFromRedis, syncCartToPostgreSQL, syncCartFromPostgreSQL, clearCartRedis } from "./services/cart";
 import healthRouter from "./routes/health";
 
+// Helper function to parse address JSON if it's a valid JSON string
+function transformCustomerResponse(customer: Customer): Customer {
+  if (customer.address && typeof customer.address === 'string') {
+    try {
+      const parsed = JSON.parse(customer.address);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return { ...customer, address: parsed as any };
+      }
+    } catch {
+      // If parsing fails, keep the original string
+    }
+  }
+  return customer;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check routes (must be early for load balancer checks)
   app.use(healthRouter);
@@ -148,7 +163,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email já está em uso" });
       }
       const customer = await storage.createCustomer(validatedData);
-      const { password: _, ...customerResponse } = customer;
+      const transformedCustomer = transformCustomerResponse(customer);
+      const { password: _, ...customerResponse } = transformedCustomer;
       // Envia email de boas-vindas (não bloqueia a resposta)
       import('./emailService').then(({ sendWelcomeEmail }) => {
         sendWelcomeEmail(customer.email, customer.firstName).catch(() => {});
@@ -169,7 +185,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!customer) {
         return res.status(401).json({ message: "Email ou senha incorretos" });
       }
-      const { password: _, ...customerResponse } = customer;
+      const transformedCustomer = transformCustomerResponse(customer);
+      const { password: _, ...customerResponse } = transformedCustomer;
 
       const useJWT = req.query.jwt === 'true' || req.body.jwt === true;
       if (useJWT) {
@@ -194,7 +211,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!customer) {
         return res.status(404).json({ message: "Cliente não encontrado" });
       }
-      const { password: _, ...customerResponse } = customer;
+      const transformedCustomer = transformCustomerResponse(customer);
+      const { password: _, ...customerResponse } = transformedCustomer;
       res.json(customerResponse);
     } catch (error) {
       res.status(500).json({ message: "Erro interno do servidor" });
@@ -209,8 +227,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!customer) {
         return res.status(404).json({ message: "Cliente não encontrado" });
       }
-      const { password: _, ...customerResponse } = customer;
+      const transformedCustomer = transformCustomerResponse(customer);
+      const { password: _, ...customerResponse } = transformedCustomer;
       res.json(customerResponse);
+    } catch (error) {
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
+  app.post("/api/auth/customer/:id/change-password", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Senha atual e nova senha são obrigatórias" });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: "A nova senha deve ter pelo menos 8 caracteres" });
+      }
+
+      const customer = await storage.getCustomerById(id);
+      if (!customer) {
+        return res.status(404).json({ message: "Cliente não encontrado" });
+      }
+
+      // Valida senha atual
+      const isValidPassword = await storage.validateCustomerPassword(customer.email, currentPassword);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Senha atual incorreta" });
+      }
+
+      // Atualiza senha
+      const updated = await storage.updateCustomerPassword(id, newPassword);
+      if (!updated) {
+        return res.status(500).json({ message: "Erro ao atualizar senha" });
+      }
+
+      res.json({ message: "Senha alterada com sucesso" });
     } catch (error) {
       res.status(500).json({ message: "Erro interno do servidor" });
     }

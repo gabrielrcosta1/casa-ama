@@ -223,7 +223,9 @@ export function Header({ onSearch }: HeaderProps) {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Olá, {customer?.firstName}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>Meu Perfil</DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">Meu Perfil</Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem>Meus Pedidos</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout} className="text-destructive focus:bg-destructive/10 focus:text-destructive"><LogOut className="h-4 w-4 mr-2" />Sair</DropdownMenuItem>

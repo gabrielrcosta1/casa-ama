@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertSupplierSchema, type InsertSupplier } from "@shared/schema";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,24 @@ import { Building2, Store, User, Mail, Lock, Phone, MapPin, Globe, FileText, Ale
 
 export default function SupplierRegister() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Redireciona se já estiver autenticado
+  useEffect(() => {
+    const supplier = localStorage.getItem('supplier');
+    if (supplier) {
+      try {
+        const supplierData = JSON.parse(supplier);
+        if (supplierData.id) {
+          setLocation('/supplier/dashboard');
+        }
+      } catch {
+        // Se houver erro ao fazer parse, remove o item inválido
+        localStorage.removeItem('supplier');
+      }
+    }
+  }, [setLocation]);
 
   const form = useForm<InsertSupplier>({
     resolver: zodResolver(insertSupplierSchema),
@@ -257,7 +274,7 @@ export default function SupplierRegister() {
                   <MapPin className="w-4 h-4" />
                   Endereço
                 </h3>
-                
+
                 <div>
                   <Label htmlFor="address">Endereço Completo *</Label>
                   <Input
@@ -337,8 +354,8 @@ export default function SupplierRegister() {
             </CardContent>
 
             <CardFooter className="flex flex-col gap-4">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full"
                 disabled={registerMutation.isPending}
               >
@@ -351,7 +368,7 @@ export default function SupplierRegister() {
                   "Cadastrar Empresa"
                 )}
               </Button>
-              
+
               <div className="text-center text-sm text-gray-600">
                 Já tem uma conta?{" "}
                 <Link href="/supplier/login" className="text-blue-600 hover:text-blue-700 font-medium">

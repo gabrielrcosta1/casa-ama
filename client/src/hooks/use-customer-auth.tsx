@@ -15,8 +15,24 @@ interface CustomerAuthContextType {
 
 const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(undefined);
 
+// Helper function to parse address JSON if it's a valid JSON string
+function parseCustomerAddress(customer: Customer): Customer {
+  if (customer.address && typeof customer.address === 'string') {
+    try {
+      const parsed = JSON.parse(customer.address);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return { ...customer, address: parsed as any };
+      }
+    } catch {
+      // If parsing fails, keep the original string
+    }
+  }
+  return customer;
+}
+
 export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const queryClient = useQueryClient();
 
   // Check if customer data exists in localStorage on load
@@ -24,11 +40,14 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     const storedCustomer = localStorage.getItem('customer');
     if (storedCustomer) {
       try {
-        setCustomer(JSON.parse(storedCustomer));
+        const parsedCustomer = JSON.parse(storedCustomer);
+        const customerWithParsedAddress = parseCustomerAddress(parsedCustomer);
+        setCustomer(customerWithParsedAddress);
       } catch (error) {
         localStorage.removeItem('customer');
       }
     }
+    setIsInitialLoading(false);
   }, []);
 
   const loginMutation = useMutation({
@@ -37,8 +56,9 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: (customerData: Customer) => {
-      setCustomer(customerData);
-      localStorage.setItem('customer', JSON.stringify(customerData));
+      const customerWithParsedAddress = parseCustomerAddress(customerData);
+      setCustomer(customerWithParsedAddress);
+      localStorage.setItem('customer', JSON.stringify(customerWithParsedAddress));
     },
   });
 
@@ -48,8 +68,9 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: (customerData: Customer) => {
-      setCustomer(customerData);
-      localStorage.setItem('customer', JSON.stringify(customerData));
+      const customerWithParsedAddress = parseCustomerAddress(customerData);
+      setCustomer(customerWithParsedAddress);
+      localStorage.setItem('customer', JSON.stringify(customerWithParsedAddress));
     },
   });
 
@@ -60,8 +81,9 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: (customerData: Customer) => {
-      setCustomer(customerData);
-      localStorage.setItem('customer', JSON.stringify(customerData));
+      const customerWithParsedAddress = parseCustomerAddress(customerData);
+      setCustomer(customerWithParsedAddress);
+      localStorage.setItem('customer', JSON.stringify(customerWithParsedAddress));
     },
   });
 
@@ -88,7 +110,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       value={{
         customer,
         isAuthenticated: !!customer,
-        isLoading: loginMutation.isPending || registerMutation.isPending,
+        isLoading: isInitialLoading || loginMutation.isPending || registerMutation.isPending || updateProfileMutation.isPending,
         login,
         register,
         logout,

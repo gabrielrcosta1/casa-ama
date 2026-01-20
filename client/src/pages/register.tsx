@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useLocation } from 'wouter';
@@ -7,18 +7,47 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Textarea } from '@/components/ui/textarea';
-import { UserPlus, Eye, EyeOff, Mail, Lock, User, Phone, MapPin } from 'lucide-react';
+import { UserPlus, Eye, EyeOff, Mail, Lock, User, Phone, MapPin, Loader2 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/use-customer-auth';
 import { useToast } from '@/hooks/use-toast';
 import { insertCustomerSchema, type InsertCustomer } from '@shared/schema';
+import { AnimatePresence, motion } from 'framer-motion';
+
+interface AddressFields {
+  cep: string;
+  rua: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+}
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const { register: registerCustomer, isLoading } = useCustomerAuth();
+  const { register: registerCustomer, isLoading, isAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+
+  // Redireciona se já estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const [addressFields, setAddressFields] = useState<AddressFields>({
+    cep: '',
+    rua: '',
+    numero: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    estado: '',
+  });
+  const [isCepLoading, setIsCepLoading] = useState(false);
+  const [cepLookedUp, setCepLookedUp] = useState(false);
 
   const form = useForm<InsertCustomer>({
     resolver: zodResolver(insertCustomerSchema),
@@ -35,10 +64,87 @@ export default function Register() {
     },
   });
 
+  const handleCepBlur = useCallback(async () => {
+    const cep = addressFields.cep.replace(/\D/g, '');
+    if (isCepLoading || cep.length !== 8) return;
+
+    setIsCepLoading(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await response.json();
+      if (data.erro) throw new Error("CEP não encontrado");
+      setAddressFields(prev => ({
+        ...prev,
+        rua: data.logradouro || '',
+        bairro: data.bairro || '',
+        cidade: data.localidade || '',
+        estado: data.uf || '',
+      }));
+      setCepLookedUp(true);
+      form.setValue('city', data.localidade || '');
+      form.setValue('postalCode', cep.length > 5 ? cep.slice(0, 5) + '-' + cep.slice(5) : cep);
+      setTimeout(() => document.getElementById('address-numero')?.focus(), 100);
+    } catch (error) {
+      toast({
+        title: "Erro ao buscar CEP",
+        description: "Não foi possível encontrar o CEP digitado.",
+        variant: "destructive",
+      });
+      setCepLookedUp(false);
+    } finally {
+      setIsCepLoading(false);
+    }
+  }, [addressFields.cep, isCepLoading, toast, form]);
+
+  useEffect(() => {
+    const cep = addressFields.cep.replace(/\D/g, '');
+    if (cep.length === 8) {
+      handleCepBlur();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressFields.cep]);
+
+  const handleAddressChange = (field: keyof AddressFields, value: string) => {
+    if (field === 'cep') {
+      const cepValue = value.replace(/\D/g, '').slice(0, 8);
+      const formattedCep = cepValue.length > 5 ? cepValue.slice(0, 5) + '-' + cepValue.slice(5) : cepValue;
+      setAddressFields(prev => ({ ...prev, cep: formattedCep }));
+      form.setValue('postalCode', formattedCep);
+    } else {
+      setAddressFields(prev => ({ ...prev, [field]: value }));
+      if (field === 'cidade') {
+        form.setValue('city', value);
+      }
+    }
+  };
+
   const onSubmit = async (data: InsertCustomer) => {
     setError('');
+
+    // Se o usuário preencheu o CEP, monta o endereço estruturado
+    let finalAddress = data.address || '';
+    if (addressFields.cep && cepLookedUp) {
+      const addressObject = {
+        cep: addressFields.cep.replace(/\D/g, ''),
+        rua: addressFields.rua,
+        numero: addressFields.numero,
+        complemento: addressFields.complemento,
+        bairro: addressFields.bairro,
+        cidade: addressFields.cidade,
+        estado: addressFields.estado,
+      };
+      finalAddress = JSON.stringify(addressObject);
+    }
+
+    const submitData: InsertCustomer = {
+      ...data,
+      address: finalAddress,
+      city: addressFields.cidade || data.city || '',
+      postalCode: addressFields.cep.replace(/\D/g, '') || data.postalCode || '',
+    };
+
     try {
-      await registerCustomer(data);
+      await registerCustomer(submitData);
       toast({
         title: "Conta criada com sucesso!",
         description: "Bem-vindo à nossa loja online!",
@@ -198,69 +304,118 @@ export default function Register() {
                   Endereço (Opcional)
                 </h3>
 
+                <div>
+                  <FormLabel htmlFor="address-cep">CEP</FormLabel>
+                  <div className="relative">
+                    <Input
+                      id="address-cep"
+                      value={addressFields.cep}
+                      onChange={(e) => handleAddressChange('cep', e.target.value)}
+                      placeholder="00000-000"
+                      maxLength={9}
+                      inputMode="numeric"
+                      disabled={isLoading || isCepLoading}
+                    />
+                    {isCepLoading && (
+                      <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  {cepLookedUp && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <FormLabel htmlFor="address-rua">Rua</FormLabel>
+                        <Input
+                          id="address-rua"
+                          value={addressFields.rua}
+                          onChange={(e) => handleAddressChange('rua', e.target.value)}
+                          placeholder="Nome da sua rua"
+                          disabled={isLoading || isCepLoading}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <FormLabel htmlFor="address-numero">Número</FormLabel>
+                          <Input
+                            id="address-numero"
+                            value={addressFields.numero}
+                            onChange={(e) => handleAddressChange('numero', e.target.value)}
+                            placeholder="123"
+                            disabled={isLoading || isCepLoading}
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div>
+                          <FormLabel htmlFor="address-complemento">Complemento</FormLabel>
+                          <Input
+                            id="address-complemento"
+                            value={addressFields.complemento}
+                            onChange={(e) => handleAddressChange('complemento', e.target.value)}
+                            placeholder="Apto, Bloco, etc."
+                            disabled={isLoading || isCepLoading}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <FormLabel htmlFor="address-bairro">Bairro</FormLabel>
+                        <Input
+                          id="address-bairro"
+                          value={addressFields.bairro}
+                          onChange={(e) => handleAddressChange('bairro', e.target.value)}
+                          placeholder="Seu bairro"
+                          disabled={isLoading || isCepLoading}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="col-span-2">
+                          <FormLabel htmlFor="address-cidade">Cidade</FormLabel>
+                          <Input
+                            id="address-cidade"
+                            value={addressFields.cidade}
+                            onChange={(e) => handleAddressChange('cidade', e.target.value)}
+                            placeholder="Sua cidade"
+                            disabled={isLoading || isCepLoading}
+                          />
+                        </div>
+                        <div>
+                          <FormLabel htmlFor="address-estado">Estado</FormLabel>
+                          <Input
+                            id="address-estado"
+                            value={addressFields.estado}
+                            onChange={(e) => handleAddressChange('estado', e.target.value.toUpperCase())}
+                            placeholder="UF"
+                            maxLength={2}
+                            disabled={isLoading || isCepLoading}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <FormField
                   control={form.control}
-                  name="address"
+                  name="country"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Endereço</FormLabel>
+                      <FormLabel>País</FormLabel>
                       <FormControl>
-                        <Textarea
-                          placeholder="Rua, número, complemento"
-                          {...field}
-                          value={field.value || ""}
-                          disabled={isLoading}
-                          rows={2}
-                        />
+                        <Input {...field} value={field.value || ""} disabled={isLoading} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cidade</FormLabel>
-                        <FormControl>
-                          <Input placeholder="São Paulo" {...field} value={field.value || ""} disabled={isLoading} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="postalCode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CEP</FormLabel>
-                        <FormControl>
-                          <Input placeholder="00000-000" {...field} value={field.value || ""} disabled={isLoading} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>País</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value || ""} disabled={isLoading} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
               </div>
             </CardContent>
 

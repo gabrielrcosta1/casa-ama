@@ -21,6 +21,7 @@ import SupplierLogin from "@/pages/supplier-login";
 import SupplierDashboard from "@/pages/supplier-dashboard";
 import EsqueciSenha from "@/pages/esqueci-senha";
 import RedefinirSenha from "@/pages/redefinir-senha";
+import Profile from "@/pages/profile";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import Careers from "@/pages/careers";
@@ -69,6 +70,7 @@ function Router() {
         <Route path="/supplier/dashboard" component={SupplierDashboard} />
         <Route path="/esqueci-senha" component={EsqueciSenha} />
         <Route path="/redefinir-senha" component={RedefinirSenha} />
+        <Route path="/profile" component={Profile} />
         <Route path="/about" component={About} />
         <Route path="/contact" component={Contact} />
         <Route path="/careers" component={Careers} />

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supplierLoginSchema, type SupplierLogin } from "@shared/schema";
@@ -14,6 +15,22 @@ import { Store, Mail, Lock } from "lucide-react";
 export default function SupplierLogin() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Redireciona se já estiver autenticado
+  useEffect(() => {
+    const supplier = localStorage.getItem('supplier');
+    if (supplier) {
+      try {
+        const supplierData = JSON.parse(supplier);
+        if (supplierData.id) {
+          setLocation('/supplier/dashboard');
+        }
+      } catch {
+        // Se houver erro ao fazer parse, remove o item inválido
+        localStorage.removeItem('supplier');
+      }
+    }
+  }, [setLocation]);
 
   const form = useForm<SupplierLogin>({
     resolver: zodResolver(supplierLoginSchema),
@@ -32,10 +49,10 @@ export default function SupplierLogin() {
         title: "Login realizado com sucesso!",
         description: `Bem-vindo, ${supplier.companyName}!`,
       });
-      
+
       // Store supplier info in localStorage for now (in production, use proper session management)
       localStorage.setItem('supplier', JSON.stringify(supplier));
-      
+
       // Redirect to supplier dashboard
       setLocation("/supplier/dashboard");
     },
@@ -115,8 +132,8 @@ export default function SupplierLogin() {
             </CardContent>
 
             <CardFooter className="flex flex-col gap-4">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full"
                 disabled={loginMutation.isPending}
               >
@@ -129,7 +146,7 @@ export default function SupplierLogin() {
                   "Entrar"
                 )}
               </Button>
-              
+
               <div className="text-center text-sm text-gray-600">
                 Não tem uma conta?{" "}
                 <Link href="/supplier/register" className="text-blue-600 hover:text-blue-700 font-medium">

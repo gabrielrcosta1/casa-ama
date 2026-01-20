@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useLocation } from 'wouter';
@@ -15,9 +15,16 @@ import { customerLoginSchema, type CustomerLogin } from '@shared/schema';
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const { login, isLoading } = useCustomerAuth();
+  const { login, isLoading, isAuthenticated } = useCustomerAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+
+  // Redireciona se já estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const form = useForm<CustomerLogin>({
     resolver: zodResolver(customerLoginSchema),
